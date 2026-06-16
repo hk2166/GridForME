@@ -21,7 +21,9 @@ app.get("/health", async (_req, res) => {
 });
 
 app.get("/api/grid", async (_req, res) => {
+  const startedAt = Date.now();
   const tiles = await getGridTiles();
+  console.log(`[grid] GET /api/grid served ${tiles.length} tiles in ${Date.now() - startedAt}ms`);
 
   res.json({
     cols: env.GRID_COLS,

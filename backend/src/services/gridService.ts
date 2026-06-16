@@ -2,6 +2,7 @@ import { env } from "../config/env";
 import { redis } from "../db/redis";
 
 const GRID_KEY = "grid:tiles";
+const GRID_DIMS_KEY = "grid:dims";
 
 export type GridTile = {
   id: number;
@@ -23,21 +24,51 @@ function createEmptyTile(id: number): GridTile {
 
 export async function seedGridTiles() {
   const totalTiles = env.GRID_COLS * env.GRID_ROWS;
+  const currentDims = `${env.GRID_COLS}x${env.GRID_ROWS}`;
+  const startedAt = Date.now();
 
-  // Skip seeding if the grid is already fully populated (fast restarts).
-  const existing = await redis.hLen(GRID_KEY);
-  if (existing >= totalTiles) {
+  // Detect whether the configured grid size changed since the last seed.
+  const [existing, storedDims] = await Promise.all([
+    redis.hLen(GRID_KEY),
+    redis.get(GRID_DIMS_KEY)
+  ]);
+
+  const sizeMatches = existing === totalTiles && storedDims === currentDims;
+
+  if (sizeMatches) {
+    console.log(
+      `[grid] already seeded at ${currentDims} (${totalTiles} tiles) — ` +
+        `checked in ${Date.now() - startedAt}ms`
+    );
     return;
   }
 
-  // Build all tiles and write them in a single round-trip instead of
-  // 1000 sequential calls to remote Redis.
+  if (storedDims && storedDims !== currentDims) {
+    console.log(
+      `[grid] size changed ${storedDims} -> ${currentDims}, reseeding...`
+    );
+    await redis.del(GRID_KEY);
+  } else {
+    console.log(`[grid] seeding ${currentDims} (${totalTiles} tiles)...`);
+  }
+
+  // Build all tiles and write them in a single round-trip.
+  const buildStart = Date.now();
   const entries: Record<string, string> = {};
   for (let id = 0; id < totalTiles; id++) {
     entries[String(id)] = JSON.stringify(createEmptyTile(id));
   }
+  const buildMs = Date.now() - buildStart;
 
+  const writeStart = Date.now();
   await redis.hSet(GRID_KEY, entries);
+  await redis.set(GRID_DIMS_KEY, currentDims);
+  const writeMs = Date.now() - writeStart;
+
+  console.log(
+    `[grid] seeded ${totalTiles} tiles — build ${buildMs}ms, ` +
+      `redis write ${writeMs}ms, total ${Date.now() - startedAt}ms`
+  );
 }
 
 export async function getGridTiles(): Promise<GridTile[]> {

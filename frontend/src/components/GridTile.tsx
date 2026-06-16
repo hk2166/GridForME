@@ -11,7 +11,7 @@ export function GridTile({ tile, onClick }: Props) {
       type="button"
       title={tile.ownerName ? `Owned by ${tile.ownerName}` : "Unclaimed"}
       onClick={() => onClick(tile)}
-      className="aspect-square border border-black/20 bg-gridwars-tile transition hover:brightness-125"
+      className="h-full w-full border border-black/20 bg-gridwars-tile transition hover:brightness-125"
       style={{
         backgroundColor: tile.color ?? undefined
       }}
