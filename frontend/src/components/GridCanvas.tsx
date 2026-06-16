@@ -20,6 +20,7 @@ export function GridCanvas() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [tileSize, setTileSize] = useState(20);
+  const [justCapturedId, setJustCapturedId] = useState<number | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -83,6 +84,9 @@ export function GridCanvas() {
           currentTile.id === updatedTile.id ? updatedTile : currentTile
         )
       );
+
+      setJustCapturedId(updatedTile.id);
+      window.setTimeout(() => setJustCapturedId(null), 400);
     } catch {
       setError("Tile capture failed");
     }
@@ -90,15 +94,19 @@ export function GridCanvas() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-3 py-12 text-gridwars-muted">
-        <span className="h-6 w-6 animate-spin rounded-full border-4 border-gridwars-border border-t-gridwars-accent" />
-        <span className="text-lg">Loading grid...</span>
+      <div className="flex flex-col items-center gap-4 py-12 text-gridwars-muted">
+        <span className="h-10 w-10 animate-spin rounded-full border-4 border-gridwars-border border-t-gridwars-accent" />
+        <span className="text-sm font-medium tracking-wide">Loading grid...</span>
       </div>
     );
   }
 
   if (error) {
-    return <p className="text-gridwars-danger">{error}</p>;
+    return (
+      <div className="rounded-xl border border-gridwars-danger/40 bg-gridwars-danger/10 px-5 py-4 text-gridwars-danger">
+        {error}
+      </div>
+    );
   }
 
   return (
@@ -106,17 +114,24 @@ export function GridCanvas() {
       ref={containerRef}
       className="flex h-full w-full flex-1 items-center justify-center overflow-hidden"
     >
-      <div
-        className="grid rounded border border-gridwars-border bg-gridwars-border p-1"
-        style={{
-          gap: `${TILE_GAP}px`,
-          gridTemplateColumns: `repeat(${cols}, ${tileSize}px)`,
-          gridTemplateRows: `repeat(${rows}, ${tileSize}px)`
-        }}
-      >
-        {tiles.map((tile) => (
-          <GridTileView key={tile.id} tile={tile} onClick={handleTileClick} />
-        ))}
+      <div className="relative rounded-2xl bg-gradient-to-br from-gridwars-accent/40 via-gridwars-accent2/30 to-gridwars-accent3/40 p-[1.5px] shadow-2xl shadow-gridwars-accent/10">
+        <div
+          className="grid rounded-2xl bg-gridwars-panel/80 p-2 backdrop-blur-sm"
+          style={{
+            gap: `${TILE_GAP}px`,
+            gridTemplateColumns: `repeat(${cols}, ${tileSize}px)`,
+            gridTemplateRows: `repeat(${rows}, ${tileSize}px)`
+          }}
+        >
+          {tiles.map((tile) => (
+            <GridTileView
+              key={tile.id}
+              tile={tile}
+              onClick={handleTileClick}
+              justCaptured={tile.id === justCapturedId}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
