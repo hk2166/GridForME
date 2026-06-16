@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String    @id @default(cuid())
+  name      String
+  color     String
+  createdAt DateTime  @default(now())
+  captures  Capture[]
+}
+
+model Capture {
+  id         String   @id @default(cuid())
+  tileId     Int
+  userId     String
+  userName   String
+  color      String
+  capturedAt DateTime @default(now())
+  wasSteal   Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model LeaderboardSnapshot {
+  id        String   @id @default(cuid())
+  userId    String
+  userName  String
+  color     String
+  tileCount Int
+  rank      Int
+  snapAt    DateTime @default(now())
+}
