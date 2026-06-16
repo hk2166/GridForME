@@ -11,6 +11,7 @@
   "dependencies": {
     "clsx": "^2.1.1",
     "next": "14.2.35",
+    "nodemon": "^3.1.14",
     "react": "^18",
     "react-dom": "^18"
   },

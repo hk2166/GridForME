@@ -24,9 +24,20 @@ function createEmptyTile(id: number): GridTile {
 export async function seedGridTiles() {
   const totalTiles = env.GRID_COLS * env.GRID_ROWS;
 
-  for (let id = 0; id < totalTiles; id++) {
-    await redis.hSetNX(GRID_KEY, String(id), JSON.stringify(createEmptyTile(id)));
+  // Skip seeding if the grid is already fully populated (fast restarts).
+  const existing = await redis.hLen(GRID_KEY);
+  if (existing >= totalTiles) {
+    return;
   }
+
+  // Build all tiles and write them in a single round-trip instead of
+  // 1000 sequential calls to remote Redis.
+  const entries: Record<string, string> = {};
+  for (let id = 0; id < totalTiles; id++) {
+    entries[String(id)] = JSON.stringify(createEmptyTile(id));
+  }
+
+  await redis.hSet(GRID_KEY, entries);
 }
 
 export async function getGridTiles(): Promise<GridTile[]> {

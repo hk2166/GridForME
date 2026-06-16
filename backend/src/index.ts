@@ -77,11 +77,13 @@ app.post("/api/grid/capture", async (req, res) => {
 
 async function start() {
   await redis.connect();
-  await seedGridTiles();
 
   app.listen(env.PORT, () => {
     console.log(`http://localhost:${env.PORT}`);
   });
+
+  // Seed after the server is already accepting requests so startup isn't blocked.
+  await seedGridTiles();
 }
 
 start().catch((error) => {
