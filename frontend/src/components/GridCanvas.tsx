@@ -54,9 +54,9 @@ export function GridCanvas() {
   if (isLoading) {
     return (
       <div className="flex items-center gap-3 py-12 text-gridwars-muted">
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-gridwars-border border-t-gridwars-accent" />
-        Loading grid...
-      </div>
+        <span className="h-12 w-12 animate-spin rounded-full border-4 border-gridwars-border border-t-gridwars-accent" />
+        <span className="text-6xl">Loading grid...</span>
+    </div>
     );
   }
 
