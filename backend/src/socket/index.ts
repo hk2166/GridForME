@@ -4,7 +4,10 @@ import { env } from "../config/env";
 import { getGridTiles, captureTileRealtime } from "../services/gridService";
 import { prisma } from "../db/prisma";
 import { redis } from "../db/redis";
-import { clearCaptureCooldown, reserveCaptureCooldown } from "../services/cooldownService";
+import {
+  clearCaptureCooldown,
+  reserveCaptureCooldown
+} from "../services/cooldownService";
 import { getLeaderboard } from "../services/leaderboardService";
 
 type JoinPayload = {
@@ -56,37 +59,28 @@ export function initializeSocket(server: http.Server) {
     });
 
     socket.on("tile:capture", async (payload: CapturePayload) => {
-        const cooldown = await reserveCaptureCooldown(payload.userId);
+      const cooldown = await reserveCaptureCooldown(payload.userId);
 
-        if (!cooldown.allowed) {
+      if (!cooldown.allowed) {
         socket.emit("capture:error", {
-            tileId: payload.tileId,
-            reason: "cooldown",
-            retryAfter: cooldown.retryAfter,
-            message: `Wait ${cooldown.retryAfter}s before capturing again`
+          tileId: payload.tileId,
+          reason: "cooldown",
+          retryAfter: cooldown.retryAfter,
+          message: `Wait ${cooldown.retryAfter}s before capturing again`
         });
 
         return;
-        }
-        
-        if (!cooldown.allowed) {
-  socket.emit("capture:error", {
-    tileId: payload.tileId,
-    reason: "cooldown",
-    retryAfter: cooldown.retryAfter,
-    message: `Wait ${cooldown.retryAfter}s before capturing again`
-  });
+      }
 
-  return;
-}
       try {
         const tile = await captureTileRealtime(payload);
 
         io.emit("tile:updated", tile);
+
         const leaderboard = await getLeaderboard();
 
         io.emit("leaderboard:updated", {
-        rankings: leaderboard
+          rankings: leaderboard
         });
 
         prisma.user
@@ -120,6 +114,7 @@ export function initializeSocket(server: http.Server) {
           });
       } catch (error) {
         await clearCaptureCooldown(payload.userId);
+
         socket.emit("capture:error", {
           tileId: payload.tileId,
           reason: "conflict",
@@ -144,3 +139,4 @@ export function initializeSocket(server: http.Server) {
 
   return io;
 }
+

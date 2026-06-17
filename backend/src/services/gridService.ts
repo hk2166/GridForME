@@ -157,3 +157,23 @@ export async function captureTileRealtime(input: {
 
   return JSON.parse(result) as GridTile;
 }
+
+// Wipes all tiles back to unclaimed in a single Redis round-trip.
+// Used by the protected POST /api/grid/reset endpoint.
+export async function resetGrid(): Promise<number> {
+  const totalTiles = env.GRID_COLS * env.GRID_ROWS;
+  const startedAt = Date.now();
+
+  const entries: Record<string, string> = {};
+  for (let id = 0; id < totalTiles; id++) {
+    entries[String(id)] = JSON.stringify(createEmptyTile(id));
+  }
+
+  await redis.hSet(GRID_KEY, entries);
+
+  console.log(
+    `[grid] reset ${totalTiles} tiles to unclaimed in ${Date.now() - startedAt}ms`
+  );
+
+  return totalTiles;
+}

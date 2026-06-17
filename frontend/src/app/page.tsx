@@ -1,59 +1,154 @@
-import { GridCanvas } from "@/components/GridCanvas";
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/hooks/useUser";
+
+
+const PRESET_COLORS = [
+  "#22C55E", "#3B82F6", "#EF4444", "#F59E0B",
+  "#8B5CF6", "#EC4899", "#14B8A6", "#F97316",
+  "#06B6D4", "#84CC16", "#E879F9", "#FB923C",
+];
+
+export default function LandingPage() {
+  const router = useRouter();
+  const { user, isReady, saveUser } = useUser();
+
+  const [name, setName] = useState("");
+  const [color, setColor] = useState(PRESET_COLORS[0]);
+
+  // Auto-redirect: if user already exists, skip the landing page
+  useEffect(() => {
+    if (isReady && user) {
+      router.replace("/grid");
+    }
+  }, [isReady, user, router]);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    saveUser(trimmedName, color);
+    router.push("/grid");
+  }
+
+  
+  
+  if (!isReady || user) {
+    return (
+      <main className="flex h-screen items-center justify-center bg-gridwars-bg">
+        <span className="h-10 w-10 animate-spin rounded-full border-4 border-gridwars-border border-t-gridwars-accent" />
+      </main>
+    );
+  }
+
   return (
-    <main className="relative flex h-screen flex-col overflow-hidden bg-gridwars-bg px-6 py-6 text-gridwars-text">
-      {/* Ambient animated background glows */}
+    <main className="relative flex h-screen items-center justify-center overflow-hidden bg-gridwars-bg text-gridwars-text">
+      {/* Ambient background glows — same style as the grid page */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-gridwars-accent/20 blur-3xl animate-glow-drift" />
         <div className="absolute -bottom-40 right-0 h-[28rem] w-[28rem] rounded-full bg-gridwars-accent2/15 blur-3xl animate-glow-drift [animation-delay:-6s]" />
         <div className="absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full bg-gridwars-accent3/10 blur-3xl animate-glow-drift [animation-delay:-12s]" />
       </div>
 
-      <div className="relative z-10 mx-auto flex h-full w-full max-w-7xl flex-col gap-5">
-        <header className="flex shrink-0 items-center justify-between rounded-2xl border border-gridwars-border/70 bg-gridwars-panel/60 px-5 py-4 backdrop-blur-xl animate-fade-in">
+      <form
+        onSubmit={handleSubmit}
+        className="relative z-10 flex w-full max-w-md flex-col gap-8 rounded-3xl border border-gridwars-border/70 bg-gridwars-panel/60 p-8 backdrop-blur-xl animate-fade-in"
+      >
+        {/* Title */}
+        <div className="text-center">
+          <h1 className="font-display text-4xl font-bold text-gradient animate-gradient-pan">
+            GridWars
+          </h1>
+          <p className="mt-2 text-sm text-gridwars-muted">
+            Claim your territory. In real time.
+          </p>
+        </div>
+
+        {/* Name input */}
+        <div className="flex flex-col gap-2">
+          <label htmlFor="player-name" className="text-sm font-medium text-gridwars-muted">
+            Player Name
+          </label>
+          <input
+            id="player-name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Enter your name..."
+            maxLength={20}
+            autoFocus
+            className="rounded-xl border border-gridwars-border bg-gridwars-bg/60 px-4 py-3 text-gridwars-text placeholder-gridwars-muted/50 outline-none transition-all focus:border-gridwars-accent focus:ring-2 focus:ring-gridwars-accent/30"
+          />
+        </div>
+
+        {/* Color picker */}
+        <div className="flex flex-col gap-3">
+          <label className="text-sm font-medium text-gridwars-muted">
+            Choose colors to capture tiles
+          </label>
+
+          {/* Preset palette */}
+          <div className="flex flex-wrap gap-2">
+            {PRESET_COLORS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setColor(preset)}
+                className={[
+                  "h-9 w-9 rounded-lg transition-all duration-150",
+                  color === preset
+                    ? "scale-110 ring-2 ring-white/80 ring-offset-2 ring-offset-gridwars-panel"
+                    : "hover:scale-105 hover:ring-1 hover:ring-white/40",
+                ].join(" ")}
+                style={{ backgroundColor: preset }}
+              />
+            ))}
+          </div>
+
+          {/* Custom color input */}
           <div className="flex items-center gap-3">
-            
-            <div>
-              <h1 className="font-display text-2xl font-bold leading-none text-gradient animate-gradient-pan">
-                GridWars
-              </h1>
-              <p className="mt-1 text-xs text-gridwars-muted">
-                Claim your territory. In real time.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 rounded-full border border-gridwars-border/70 bg-gridwars-bg/40 px-4 py-2 text-sm">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-gridwars-success opacity-75 animate-ping" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-gridwars-success" />
+            <input
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              className="h-9 w-9 cursor-pointer rounded-lg border border-gridwars-border bg-transparent"
+            />
+            <span className="font-mono text-xs text-gridwars-muted">
+              {color.toUpperCase()} — or pick a custom color
             </span>
-            <span className="font-medium">Demo Player</span>
-            <span className="h-4 w-4 rounded-md bg-gridwars-success shadow-[0_0_10px] shadow-gridwars-success/60" />
           </div>
-        </header>
+        </div>
 
-        <section className="flex min-h-0 flex-1 items-center justify-center animate-fade-in [animation-delay:120ms]">
-          <GridCanvas />
-        </section>
+        {/* Preview + Submit */}
+        <div className="flex flex-col gap-4">
+          {/* Live preview of what you'll look like */}
+          <div className="flex items-center gap-3 rounded-xl border border-gridwars-border/50 bg-gridwars-bg/40 px-4 py-3">
+            <span
+              className="h-5 w-5 rounded-md shadow-lg"
+              style={{
+                backgroundColor: color,
+                boxShadow: `0 0 12px ${color}88`,
+              }}
+            />
+            <span className="text-sm font-medium">
+              {name.trim() || "Your Name"}
+            </span>
+            <span className="ml-auto text-xs text-gridwars-muted">Preview</span>
+          </div>
 
-        <footer className="flex shrink-0 items-center justify-center gap-6 rounded-2xl border border-gridwars-border/70 bg-gridwars-panel/60 px-5 py-3 text-xs text-gridwars-muted backdrop-blur-xl animate-fade-in [animation-delay:200ms]">
-          <span className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded bg-gridwars-tile" /> Unclaimed
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded bg-gridwars-success shadow-[0_0_8px] shadow-gridwars-success/60" />
-            Yours
-          </span>
-          <span className="hidden items-center gap-2 sm:flex">
-            <kbd className="rounded border border-gridwars-border bg-gridwars-bg/60 px-1.5 py-0.5 font-mono">
-              click
-            </kbd>
-            to capture a tile
-          </span>
-        </footer>
-      </div>
+          <button
+            type="submit"
+            disabled={!name.trim()}
+            className="rounded-xl bg-gridwars-accent px-6 py-3 font-display font-semibold text-white transition-all hover:bg-gridwars-accent/80 hover:shadow-lg hover:shadow-gridwars-accent/30 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Enter the Grid →
+          </button>
+        </div>
+      </form>
     </main>
   );
 }

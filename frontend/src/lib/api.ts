@@ -48,8 +48,7 @@ export async function captureTile(input: {
 }
 
 
-export type LeaderboardEntry = {
-  userId: string;
+export type LeaderboardEntry = {  userId: string;
   userName: string;
   color: string;
   tileCount: number;
@@ -63,6 +62,25 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
 
   if (!response.ok) {
     throw new Error("Failed to fetch leaderboard");
+  }
+
+  return response.json();
+}
+
+export type StatsResponse = {
+  totalTiles: number;
+  claimedTiles: number;
+  onlineCount: number;
+  totalCaptures: number;
+};
+
+export async function getStats(): Promise<StatsResponse> {
+  const response = await fetch(`${API_URL}/api/stats`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch stats");
   }
 
   return response.json();

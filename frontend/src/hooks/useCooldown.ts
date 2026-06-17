@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function useCooldown() {
   const [remaining, setRemaining] = useState(0);
@@ -15,13 +15,13 @@ export function useCooldown() {
     return () => window.clearInterval(timer);
   }, [remaining]);
 
-  function start(seconds: number) {
+  const start = useCallback((seconds: number) => {
     setRemaining(seconds);
-  }
+  }, []);
 
-  function reset() {
+  const reset = useCallback(() => {
     setRemaining(0);
-  }
+  }, []);
 
   return {
     remaining,
@@ -30,3 +30,4 @@ export function useCooldown() {
     reset
   };
 }
+
