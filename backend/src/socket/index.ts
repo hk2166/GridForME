@@ -105,7 +105,7 @@ export function initializeSocket(server: http.Server) {
                 userId: payload.userId,
                 userName: payload.userName,
                 color: payload.color,
-                wasSteal: false
+                wasSteal: tile.wasSteal
               }
             })
           )

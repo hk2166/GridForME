@@ -34,3 +34,4 @@ pnpm-debug.log*
 #docs
 tasks.md
 GridWars_Project_Documentation.md
+.commands.md

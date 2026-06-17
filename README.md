@@ -64,3 +64,4 @@ See `backend/.env.example` for the full list. Key values:
 - `PORT`, `CORS_ORIGIN`, `GRID_COLS`, `GRID_ROWS`
 
 > Never commit your `.env` file. It is gitignored by default.
+

@@ -174,44 +174,44 @@ export function GridCanvas({ user }: Props) {
     return () => observer.disconnect();
   }, [cols, rows, isLoading]);
 
-  function handleTileClick(tile: GridTile) {
-    if (tile.ownerId) return;
-
-    if (cooldown.isCoolingDown) {
-      setError(`Wait ${cooldown.remaining}s before capturing again`);
-      return;
-    }
-
-    setError(null);
-
-    const optimisticTile: GridTile = {
-      ...tile,
-      ownerId: user.id,
-      ownerName: user.name,
-      color: user.color,
-      capturedAt: new Date().toISOString()
-    };
-
-    pendingTilesRef.current[tile.id] = tile;
-
-    setTiles((currentTiles) =>
-      currentTiles.map((currentTile) =>
-        currentTile.id === tile.id ? optimisticTile : currentTile
-      )
-    );
-
-    setJustCapturedId(tile.id);
-    window.setTimeout(() => setJustCapturedId(null), 400);
-
-    socket.emit("tile:capture", {
-      tileId: tile.id,
-      userId: user.id,
-      userName: user.name,
-      color: user.color
-    });
-
-    cooldown.start(config.captureCooldownSeconds);
+function handleTileClick(tile: GridTile) {
+  // allow stealing (tile.ownerId may exist)
+  if (cooldown.isCoolingDown) {
+    setError(`Wait ${cooldown.remaining}s before capturing again`);
+    return;
   }
+
+  setError(null);
+
+  const optimisticTile: GridTile = {
+    ...tile,
+    ownerId: user.id,
+    ownerName: user.name,
+    color: user.color,
+    capturedAt: new Date().toISOString(),
+    wasSteal: Boolean(tile.ownerId && tile.ownerId !== user.id)
+  };
+
+  pendingTilesRef.current[tile.id] = tile;
+
+  setTiles((currentTiles) =>
+    currentTiles.map((currentTile) =>
+      currentTile.id === tile.id ? optimisticTile : currentTile
+    )
+  );
+
+  setJustCapturedId(tile.id);
+  window.setTimeout(() => setJustCapturedId(null), 400);
+
+  socket.emit("tile:capture", {
+    tileId: tile.id,
+    userId: user.id,
+    userName: user.name,
+    color: user.color
+  });
+
+  cooldown.start(config.captureCooldownSeconds);
+}
 
   if (isLoading) {
     return (

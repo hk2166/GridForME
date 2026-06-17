@@ -6,6 +6,7 @@ export type GridTile = {
   ownerName: string | null;
   color: string | null;
   capturedAt: string | null;
+  wasSteal?: boolean;
 };
 
 export type GridResponse = {
@@ -48,7 +49,8 @@ export async function captureTile(input: {
 }
 
 
-export type LeaderboardEntry = {  userId: string;
+export type LeaderboardEntry = {
+  userId: string;
   userName: string;
   color: string;
   tileCount: number;

@@ -9,14 +9,13 @@ export default function GridPage() {
   const router = useRouter();
   const { user, isReady, clearUser } = useUser();
 
-  
+  // All hooks must come before any early return — React's Rules of Hooks.
   useEffect(() => {
     if (isReady && !user) {
       router.replace("/");
     }
   }, [isReady, user, router]);
 
-  
   if (!isReady || !user) {
     return (
       <main className="flex h-screen items-center justify-center bg-gridwars-bg">

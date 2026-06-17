@@ -10,6 +10,7 @@ export type GridTile = {
   ownerName: string | null;
   color: string | null;
   capturedAt: string | null;
+  wasSteal: boolean;
 };
 
 function createEmptyTile(id: number): GridTile {
@@ -18,7 +19,8 @@ function createEmptyTile(id: number): GridTile {
     ownerId: null,
     ownerName: null,
     color: null,
-    capturedAt: null
+    capturedAt: null,
+    wasSteal: false
   };
 }
 
@@ -102,7 +104,8 @@ export async function captureTile(input: {
     ownerId: input.userId,
     ownerName: input.userName,
     color: input.color,
-    capturedAt: new Date().toISOString()
+    capturedAt: new Date().toISOString(),
+    wasSteal: Boolean(tile.ownerId)
   };
 
   await redis.hSet(GRID_KEY, String(input.tileId), JSON.stringify(updatedTile));
@@ -110,45 +113,58 @@ export async function captureTile(input: {
   return updatedTile;
 }
 
-// Realtime version — uses a Lua script for atomic compare-and-set so two
-// simultaneous captures of the same tile are resolved server-side.
-// First writer wins; second gets an error thrown back.
 export async function captureTileRealtime(input: {
   tileId: number;
   userId: string;
   userName: string;
   color: string;
 }): Promise<GridTile> {
-  const updatedTile: GridTile = {
-    id: input.tileId,
-    ownerId: input.userId,
-    ownerName: input.userName,
-    color: input.color,
-    capturedAt: new Date().toISOString()
-  };
-
+  // We don't know wasSteal yet — Lua will determine it from current state.
   const script = `
-    local key    = KEYS[1]
-    local field  = ARGV[1]
-    local updated = ARGV[2]
+    local key     = KEYS[1]
+    local field   = ARGV[1]
+    local userId  = ARGV[2]
+    local userName = ARGV[3]
+    local color   = ARGV[4]
+    local now     = ARGV[5]
+    local tileId  = tonumber(ARGV[6])
 
     local current = redis.call("HGET", key, field)
     if not current then
       return redis.error_reply("Tile not found")
     end
 
-    local data = cjson.decode(current)
+    local data    = cjson.decode(current)
+    local wasSteal = false
+
     if data["ownerId"] ~= cjson.null and data["ownerId"] ~= nil and data["ownerId"] ~= false then
-      return redis.error_reply("Tile already captured")
+      wasSteal = true
     end
 
-    redis.call("HSET", key, field, updated)
-    return updated
+    local updated = {
+      id         = tileId,
+      ownerId    = userId,
+      ownerName  = userName,
+      color      = color,
+      capturedAt = now,
+      wasSteal   = wasSteal
+    }
+
+    local encoded = cjson.encode(updated)
+    redis.call("HSET", key, field, encoded)
+    return encoded
   `;
 
   const result = await redis.eval(script, {
     keys: [GRID_KEY],
-    arguments: [String(input.tileId), JSON.stringify(updatedTile)]
+    arguments: [
+      String(input.tileId),
+      input.userId,
+      input.userName,
+      input.color,
+      new Date().toISOString(),
+      String(input.tileId)
+    ]
   });
 
   if (typeof result !== "string") {
