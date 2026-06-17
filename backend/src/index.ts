@@ -4,8 +4,12 @@ import { env } from "./config/env";
 import { redis } from "./db/redis";
 import { prisma } from "./db/prisma";
 import { captureTile, getGridTiles, seedGridTiles } from "./services/gridService";
+import http from "http";
+import { initializeSocket } from "./socket";
 
+const server = http.createServer(app);
 const app = express();
+initializeSocket(server);
 
 app.use(cors({ origin: env.CORS_ORIGIN }));
 app.use(express.json());
@@ -79,13 +83,15 @@ app.post("/api/grid/capture", async (req, res) => {
 
 async function start() {
   await redis.connect();
-
-  app.listen(env.PORT, () => {
-    console.log(`http://localhost:${env.PORT}`);
-  });
-
-  // Seed after the server is already accepting requests so startup isn't blocked.
   await seedGridTiles();
+
+  const server = http.createServer(app);
+
+  initializeSocket(server);
+
+  server.listen(env.PORT, () => {
+    console.log(`https://localhost:/${env.PORT}`);
+  });
 }
 
 start().catch((error) => {
