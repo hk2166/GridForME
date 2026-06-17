@@ -59,16 +59,32 @@ export function initializeSocket(server: http.Server) {
 
         io.emit("tile:updated", tile);
 
-        prisma.capture
-          .create({
-            data: {
-              tileId: tile.id,
-              userId: payload.userId,
-              userName: payload.userName,
-              color: payload.color,
-              wasSteal: false
+        prisma.user
+          .upsert({
+            where: {
+              id: payload.userId
+            },
+            update: {
+              name: payload.userName,
+              color: payload.color
+            },
+            create: {
+              id: payload.userId,
+              name: payload.userName,
+              color: payload.color
             }
           })
+          .then(() =>
+            prisma.capture.create({
+              data: {
+                tileId: tile.id,
+                userId: payload.userId,
+                userName: payload.userName,
+                color: payload.color,
+                wasSteal: false
+              }
+            })
+          )
           .catch((error) => {
             console.error("Failed to persist capture", error);
           });

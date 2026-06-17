@@ -12,7 +12,7 @@ const config: Config = {
         gridwars: {
           bg: "#0B0D12",
           panel: "#141821",
-          tile: "#1E2430",
+          tile: "#a855f773",
           border: "#2A3242",
           text: "#F4F7FB",
           muted: "#8B95A7",

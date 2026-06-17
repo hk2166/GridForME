@@ -7,9 +7,7 @@ import { captureTile, getGridTiles, seedGridTiles } from "./services/gridService
 import http from "http";
 import { initializeSocket } from "./socket";
 
-const server = http.createServer(app);
 const app = express();
-initializeSocket(server);
 
 app.use(cors({ origin: env.CORS_ORIGIN }));
 app.use(express.json());
@@ -90,7 +88,7 @@ async function start() {
   initializeSocket(server);
 
   server.listen(env.PORT, () => {
-    console.log(`https://localhost:/${env.PORT}`);
+    console.log(`GridWars backend running on http://localhost:${env.PORT}`);
   });
 }
 

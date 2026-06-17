@@ -109,3 +109,51 @@ export async function captureTile(input: {
 
   return updatedTile;
 }
+
+// Realtime version — uses a Lua script for atomic compare-and-set so two
+// simultaneous captures of the same tile are resolved server-side.
+// First writer wins; second gets an error thrown back.
+export async function captureTileRealtime(input: {
+  tileId: number;
+  userId: string;
+  userName: string;
+  color: string;
+}): Promise<GridTile> {
+  const updatedTile: GridTile = {
+    id: input.tileId,
+    ownerId: input.userId,
+    ownerName: input.userName,
+    color: input.color,
+    capturedAt: new Date().toISOString()
+  };
+
+  const script = `
+    local key    = KEYS[1]
+    local field  = ARGV[1]
+    local updated = ARGV[2]
+
+    local current = redis.call("HGET", key, field)
+    if not current then
+      return redis.error_reply("Tile not found")
+    end
+
+    local data = cjson.decode(current)
+    if data["ownerId"] ~= cjson.null and data["ownerId"] ~= nil and data["ownerId"] ~= false then
+      return redis.error_reply("Tile already captured")
+    end
+
+    redis.call("HSET", key, field, updated)
+    return updated
+  `;
+
+  const result = await redis.eval(script, {
+    keys: [GRID_KEY],
+    arguments: [String(input.tileId), JSON.stringify(updatedTile)]
+  });
+
+  if (typeof result !== "string") {
+    throw new Error("Capture failed");
+  }
+
+  return JSON.parse(result) as GridTile;
+}
