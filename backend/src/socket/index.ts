@@ -4,6 +4,7 @@ import { env } from "../config/env";
 import { getGridTiles, captureTileRealtime } from "../services/gridService";
 import { prisma } from "../db/prisma";
 import { redis } from "../db/redis";
+import { clearCaptureCooldown, reserveCaptureCooldown } from "../services/cooldownService";
 
 type JoinPayload = {
   userId: string;
@@ -54,6 +55,29 @@ export function initializeSocket(server: http.Server) {
     });
 
     socket.on("tile:capture", async (payload: CapturePayload) => {
+        const cooldown = await reserveCaptureCooldown(payload.userId);
+
+        if (!cooldown.allowed) {
+        socket.emit("capture:error", {
+            tileId: payload.tileId,
+            reason: "cooldown",
+            retryAfter: cooldown.retryAfter,
+            message: `Wait ${cooldown.retryAfter}s before capturing again`
+        });
+
+        return;
+        }
+        
+        if (!cooldown.allowed) {
+  socket.emit("capture:error", {
+    tileId: payload.tileId,
+    reason: "cooldown",
+    retryAfter: cooldown.retryAfter,
+    message: `Wait ${cooldown.retryAfter}s before capturing again`
+  });
+
+  return;
+}
       try {
         const tile = await captureTileRealtime(payload);
 
@@ -89,6 +113,7 @@ export function initializeSocket(server: http.Server) {
             console.error("Failed to persist capture", error);
           });
       } catch (error) {
+        await clearCaptureCooldown(payload.userId);
         socket.emit("capture:error", {
           tileId: payload.tileId,
           reason: "conflict",
