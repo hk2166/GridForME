@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { getGrid, type GridTile } from "@/lib/api";
 import { GridTile as GridTileView } from "./GridTile";
 import { useSocket } from "@/hooks/useSocket";
+import { useCooldown } from "@/hooks/useCooldown";
+
+const CAPTURE_COOLDOWN_SECONDS = 5;
 
 const demoUser = {
   id: "demo-user",
@@ -14,6 +17,7 @@ const demoUser = {
 const TILE_GAP = 1;
 
 export function GridCanvas() {
+  const cooldown = useCooldown();
   const [cols, setCols] = useState(40);
   const [rows, setRows] = useState(25);
   const [tiles, setTiles] = useState<GridTile[]>([]);
@@ -130,6 +134,10 @@ export function GridCanvas() {
 
   function handleTileClick(tile: GridTile) {
     if (tile.ownerId) return;
+    if (cooldown.isCoolingDown) {
+      setError(`Wait ${cooldown.remaining}s before capturing again`);
+    return;
+}
 
     setError(null);
 
@@ -158,6 +166,7 @@ export function GridCanvas() {
       userName: demoUser.name,
       color: demoUser.color
     });
+    cooldown.start(CAPTURE_COOLDOWN_SECONDS);
   }
 
   if (isLoading) {
@@ -198,12 +207,15 @@ export function GridCanvas() {
           }}
         >
           {tiles.map((tile) => (
+              
             <GridTileView
+            
               key={tile.id}
               tile={tile}
               onClick={handleTileClick}
               justCaptured={tile.id === justCapturedId}
             />
+            
           ))}
         </div>
       </div>

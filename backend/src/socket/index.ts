@@ -5,6 +5,7 @@ import { getGridTiles, captureTileRealtime } from "../services/gridService";
 import { prisma } from "../db/prisma";
 import { redis } from "../db/redis";
 import { clearCaptureCooldown, reserveCaptureCooldown } from "../services/cooldownService";
+import { getLeaderboard } from "../services/leaderboardService";
 
 type JoinPayload = {
   userId: string;
@@ -82,6 +83,11 @@ export function initializeSocket(server: http.Server) {
         const tile = await captureTileRealtime(payload);
 
         io.emit("tile:updated", tile);
+        const leaderboard = await getLeaderboard();
+
+        io.emit("leaderboard:updated", {
+        rankings: leaderboard
+        });
 
         prisma.user
           .upsert({
