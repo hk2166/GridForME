@@ -34,33 +34,31 @@ export default function GridPage() {
       </div>
 
       <div className="relative z-10 mx-auto flex h-full w-full max-w-7xl flex-col gap-5">
-        <header className="flex shrink-0 items-center justify-between rounded-2xl border border-gridwars-border/70 bg-gridwars-panel/60 px-5 py-4 backdrop-blur-xl animate-fade-in">
+        <header className="flex shrink-0 items-center justify-between rounded-2xl border border-gridwars-border/70 bg-gridwars-panel/60 px-4 py-3 backdrop-blur-xl animate-fade-in sm:px-5 sm:py-4">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="font-display text-2xl font-bold leading-none text-gradient animate-gradient-pan">
+              <h1 className="font-display text-xl font-bold leading-none text-gradient animate-gradient-pan sm:text-2xl">
                 GridWars
               </h1>
-              <p className="mt-1 text-xs text-gridwars-muted">
+              <p className="mt-1 hidden text-xs text-gridwars-muted sm:block">
                 Claim your territory. In real time.
               </p>
             </div>
           </div>
 
-          {/* ── User badge ── Shows real name + color instead of "Demo Player" */}
-          <div className="flex items-center gap-3 rounded-full border border-gridwars-border/70 bg-gridwars-bg/40 px-4 py-2 text-sm">
+          <div className="flex items-center gap-3 rounded-full border border-gridwars-border/70 bg-gridwars-bg/40 px-3 py-1.5 text-sm sm:px-4 sm:py-2">
             <span className="relative flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full rounded-full bg-gridwars-success opacity-75 animate-ping" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-gridwars-success" />
             </span>
-            <span className="font-medium">{user.name}</span>
+            <span className="max-w-[80px] truncate font-medium sm:max-w-none">{user.name}</span>
             <span
-              className="h-4 w-4 rounded-md shadow-[0_0_10px]"
+              className="h-4 w-4 shrink-0 rounded-md"
               style={{
                 backgroundColor: user.color,
                 boxShadow: `0 0 10px ${user.color}99`,
               }}
             />
-            {/* Change identity button */}
             <button
               type="button"
               onClick={() => {
@@ -79,25 +77,26 @@ export default function GridPage() {
           <GridCanvas user={user} />
         </section>
 
-        <footer className="flex shrink-0 items-center justify-center gap-6 rounded-2xl border border-gridwars-border/70 bg-gridwars-panel/60 px-5 py-3 text-xs text-gridwars-muted backdrop-blur-xl animate-fade-in [animation-delay:200ms]">
+        <footer className="flex shrink-0 items-center justify-center gap-4 rounded-2xl border border-gridwars-border/70 bg-gridwars-panel/60 px-4 py-2.5 text-xs text-gridwars-muted backdrop-blur-xl animate-fade-in [animation-delay:200ms] sm:gap-6 sm:px-5 sm:py-3">
           <span className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded bg-gridwars-tile" /> Unclaimed
+            <span className="h-3 w-3 rounded bg-gridwars-tile" />
+            <span className="hidden sm:inline">Unclaimed</span>
           </span>
           <span className="flex items-center gap-2">
             <span
-              className="h-3 w-3 rounded shadow-[0_0_8px]"
+              className="h-3 w-3 rounded"
               style={{
                 backgroundColor: user.color,
                 boxShadow: `0 0 8px ${user.color}99`,
               }}
             />
-            Yours
+            <span className="hidden sm:inline">Yours</span>
           </span>
-          <span className="hidden items-center gap-2 sm:flex">
+          <span className="flex items-center gap-2">
             <kbd className="rounded border border-gridwars-border bg-gridwars-bg/60 px-1.5 py-0.5 font-mono">
               click
             </kbd>
-            to capture a tile
+            to capture
           </span>
         </footer>
       </div>

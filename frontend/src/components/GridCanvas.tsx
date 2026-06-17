@@ -9,37 +9,39 @@ import {
 } from "@/lib/api";
 import { useCooldown } from "@/hooks/useCooldown";
 import { useSocket } from "@/hooks/useSocket";
+import { useToast } from "@/hooks/useToast";
 import { type UserProfile } from "@/hooks/useUser";
 import { config } from "@/lib/config";
 import { CooldownBar } from "./CooldownBar";
 import { GridTile as GridTileView } from "./GridTile";
 import { Leaderboard } from "./Leaderboard";
 import { OnlineCount } from "./OnlineCount";
+import { RulesModal } from "./RulesModal";
 import { StatsPanel } from "./StatsPanel";
-
+import { ToastContainer } from "./Toast";
 
 type Props = {
   user: UserProfile;
 };
-
-
 
 const TILE_GAP = 1;
 
 export function GridCanvas({ user }: Props) {
   const cooldown = useCooldown();
   const { socket, isConnected } = useSocket();
+  const { toasts, addToast, dismiss } = useToast();
 
   const [cols, setCols] = useState(40);
   const [rows, setRows] = useState(25);
   const [tiles, setTiles] = useState<GridTile[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [onlineCount, setOnlineCount] = useState(0);
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [tileSize, setTileSize] = useState(20);
   const [justCapturedId, setJustCapturedId] = useState<number | null>(null);
-  const myEntry = leaderboard.find(e => e.userId === user.id);
+  const [rulesOpen, setRulesOpen] = useState(false);
+
+  const myEntry = leaderboard.find((e) => e.userId === user.id);
   const tilesOwned = myEntry?.tileCount ?? 0;
   const myRank = myEntry?.rank ?? null;
 
@@ -53,25 +55,18 @@ export function GridCanvas({ user }: Props) {
         setRows(grid.rows);
         setTiles(grid.tiles);
       })
-      .catch(() => {
-        setError("Could not load grid");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, []);
+      .catch(() => addToast("Could not load grid", "error"))
+      .finally(() => setIsLoading(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     getLeaderboard()
       .then(setLeaderboard)
-      .catch(() => {
-        setError("Could not load leaderboard");
-      });
-  }, []);
+      .catch(() => addToast("Could not load leaderboard", "error"));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isConnected) return;
-
     socket.emit("user:join", {
       userId: user.id,
       name: user.name,
@@ -82,51 +77,49 @@ export function GridCanvas({ user }: Props) {
   useEffect(() => {
     function handleGridInit(payload: { tiles: GridTile[] }) {
       setTiles(payload.tiles);
-      setError(null);
       setIsLoading(false);
     }
 
     function handleTileUpdated(updatedTile: GridTile) {
       delete pendingTilesRef.current[updatedTile.id];
-
-      setTiles((currentTiles) =>
-        currentTiles.map((tile) =>
-          tile.id === updatedTile.id ? updatedTile : tile
-        )
+      setTiles((cur) =>
+        cur.map((t) => (t.id === updatedTile.id ? updatedTile : t))
       );
-
-      setError(null);
       setJustCapturedId(updatedTile.id);
       window.setTimeout(() => setJustCapturedId(null), 400);
+
+      // Toast for someone else's capture
+      if (updatedTile.ownerId !== user.id) {
+        const msg = updatedTile.wasSteal
+          ? `${updatedTile.ownerName} stole a tile!`
+          : `${updatedTile.ownerName} claimed a tile`;
+        addToast(msg, "info");
+      }
     }
 
     function handleCaptureError(payload: {
       tileId: number;
+      reason?: string;
       message?: string;
       retryAfter?: number;
     }) {
-      const previousTile = pendingTilesRef.current[payload.tileId];
-
-      if (previousTile) {
-        setTiles((currentTiles) =>
-          currentTiles.map((tile) =>
-            tile.id === payload.tileId ? previousTile : tile
-          )
+      const prev = pendingTilesRef.current[payload.tileId];
+      if (prev) {
+        setTiles((cur) =>
+          cur.map((t) => (t.id === payload.tileId ? prev : t))
         );
-
         delete pendingTilesRef.current[payload.tileId];
       }
+      if (payload.retryAfter) cooldown.start(payload.retryAfter);
 
-      if (payload.retryAfter) {
-        cooldown.start(payload.retryAfter);
+      if (payload.reason === "cooldown") {
+        addToast(`Cooldown! Wait ${payload.retryAfter}s`, "error");
+      } else {
+        addToast(payload.message ?? "Tile capture failed", "error");
       }
-
-      setError(payload.message ?? "Tile capture failed");
     }
 
-    function handleLeaderboardUpdated(payload: {
-      rankings: LeaderboardEntry[];
-    }) {
+    function handleLeaderboardUpdated(payload: { rankings: LeaderboardEntry[] }) {
       setLeaderboard(payload.rankings);
     }
 
@@ -147,7 +140,7 @@ export function GridCanvas({ user }: Props) {
       socket.off("leaderboard:updated", handleLeaderboardUpdated);
       socket.off("online:count", handleOnlineCount);
     };
-  }, [socket, cooldown.start]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [socket, cooldown.start, user.id, addToast]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const gridArea = gridAreaRef.current;
@@ -156,133 +149,131 @@ export function GridCanvas({ user }: Props) {
     const computeTileSize = () => {
       const { width, height } = gridArea.getBoundingClientRect();
       if (width === 0 || height === 0) return;
-
       const availableWidth = width - TILE_GAP * (cols - 1);
       const availableHeight = height - TILE_GAP * (rows - 1);
       const size = Math.floor(
         Math.min(availableWidth / cols, availableHeight / rows)
       );
-
       setTileSize(Math.max(size, 1));
     };
 
     computeTileSize();
-
     const observer = new ResizeObserver(computeTileSize);
     observer.observe(gridArea);
-
     return () => observer.disconnect();
   }, [cols, rows, isLoading]);
 
-function handleTileClick(tile: GridTile) {
-  // allow stealing (tile.ownerId may exist)
-  if (cooldown.isCoolingDown) {
-    setError(`Wait ${cooldown.remaining}s before capturing again`);
-    return;
+  function handleTileClick(tile: GridTile) {
+    if (cooldown.isCoolingDown) {
+      addToast(`Wait ${cooldown.remaining}s before capturing again`, "error");
+      return;
+    }
+
+    const isSteal = Boolean(tile.ownerId && tile.ownerId !== user.id);
+
+    const optimisticTile: GridTile = {
+      ...tile,
+      ownerId: user.id,
+      ownerName: user.name,
+      color: user.color,
+      capturedAt: new Date().toISOString(),
+      wasSteal: isSteal
+    };
+
+    pendingTilesRef.current[tile.id] = tile;
+    setTiles((cur) =>
+      cur.map((t) => (t.id === tile.id ? optimisticTile : t))
+    );
+    setJustCapturedId(tile.id);
+    window.setTimeout(() => setJustCapturedId(null), 400);
+
+    socket.emit("tile:capture", {
+      tileId: tile.id,
+      userId: user.id,
+      userName: user.name,
+      color: user.color
+    });
+
+    cooldown.start(config.captureCooldownSeconds);
+    addToast(isSteal ? "Tile stolen! 🔥" : "Tile captured!", "success");
   }
-
-  setError(null);
-
-  const optimisticTile: GridTile = {
-    ...tile,
-    ownerId: user.id,
-    ownerName: user.name,
-    color: user.color,
-    capturedAt: new Date().toISOString(),
-    wasSteal: Boolean(tile.ownerId && tile.ownerId !== user.id)
-  };
-
-  pendingTilesRef.current[tile.id] = tile;
-
-  setTiles((currentTiles) =>
-    currentTiles.map((currentTile) =>
-      currentTile.id === tile.id ? optimisticTile : currentTile
-    )
-  );
-
-  setJustCapturedId(tile.id);
-  window.setTimeout(() => setJustCapturedId(null), 400);
-
-  socket.emit("tile:capture", {
-    tileId: tile.id,
-    userId: user.id,
-    userName: user.name,
-    color: user.color
-  });
-
-  cooldown.start(config.captureCooldownSeconds);
-}
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center gap-4 py-12 text-gridwars-muted">
         <span className="h-10 w-10 animate-spin rounded-full border-4 border-gridwars-border border-t-gridwars-accent" />
-        <span className="text-sm font-medium tracking-wide">
-          Loading grid...
-        </span>
-      </div>
-    );
-  }
-
-  if (error && tiles.length === 0) {
-    return (
-      <div className="rounded-xl border border-gridwars-danger/40 bg-gridwars-danger/10 px-5 py-4 text-gridwars-danger">
-        {error}
+        <span className="text-sm font-medium tracking-wide">Loading grid...</span>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
-      <div className="flex w-full items-center justify-end">
-        <OnlineCount count={onlineCount} />
-      </div>
+    <>
+      <RulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
 
-      {error ? (
-        <div className="fixed bottom-2 left-2 z-50 rounded-lg border border-gridwars-danger/40 bg-gridwars-danger/10 px-4 py-2 text-sm text-gridwars-danger shadow-lg backdrop-blur-xl">
-          {error}
+      <div className="flex h-full w-full flex-1 flex-col gap-3 overflow-hidden">
+        {/* Top bar */}
+        <div className="flex w-full shrink-0 items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setRulesOpen(true)}
+            className="flex items-center gap-1.5 rounded-xl border border-gridwars-border/70 bg-gridwars-panel/60 px-3 py-1.5 text-xs text-gridwars-muted backdrop-blur transition-colors hover:text-gridwars-text"
+            aria-label="Show rules"
+          >
+            <span className="font-bold">?</span> How to play
+          </button>
+          <OnlineCount count={onlineCount} />
         </div>
-      ) : null}
 
-      <div className="flex min-h-0 w-full flex-1 items-stretch justify-center gap-4">
-        <StatsPanel
-          tilesOwned={tilesOwned}
-          rank={myRank}
-          totalTiles={cols * rows}
-        />
-        <div
-          ref={gridAreaRef}
-          className="flex min-h-0 flex-1 items-center justify-center overflow-hidden"
-        >
-          <div className="relative rounded-2xl bg-gradient-to-br from-gridwars-accent/40 via-gridwars-accent2/30 to-gridwars-accent3/40 p-[1.5px] shadow-2xl shadow-gridwars-accent/10">
-            <div
-              className="grid rounded-2xl bg-gridwars-panel/80 p-2 backdrop-blur-sm"
-              style={{
-                gap: `${TILE_GAP}px`,
-                gridTemplateColumns: `repeat(${cols}, ${tileSize}px)`,
-                gridTemplateRows: `repeat(${rows}, ${tileSize}px)`
-              }}
-            >
-              {tiles.map((tile) => (
-                <GridTileView
-                  key={tile.id}
-                  tile={tile}
-                  onClick={handleTileClick}
-                  justCaptured={tile.id === justCapturedId}
-                />
-              ))}
+        {/* Main area: stats | grid | leaderboard */}
+        <div className="flex min-h-0 w-full flex-1 items-stretch gap-2 sm:gap-4">
+          {/* Stats panel — hidden on very small screens */}
+          <div className="hidden sm:flex sm:shrink-0">
+            <StatsPanel
+              tilesOwned={tilesOwned}
+              rank={myRank}
+              totalTiles={cols * rows}
+            />
+          </div>
+
+          {/* Grid */}
+          <div
+            ref={gridAreaRef}
+            className="flex min-h-0 flex-1 items-center justify-center overflow-hidden"
+          >
+            <div className="relative rounded-2xl bg-gradient-to-br from-gridwars-accent/40 via-gridwars-accent2/30 to-gridwars-accent3/40 p-[1.5px] shadow-2xl shadow-gridwars-accent/10">
+              <div
+                className="grid rounded-2xl bg-gridwars-panel/80 p-2 backdrop-blur-sm"
+                style={{
+                  gap: `${TILE_GAP}px`,
+                  gridTemplateColumns: `repeat(${cols}, ${tileSize}px)`,
+                  gridTemplateRows: `repeat(${rows}, ${tileSize}px)`
+                }}
+              >
+                {tiles.map((tile) => (
+                  <GridTileView
+                    key={tile.id}
+                    tile={tile}
+                    onClick={handleTileClick}
+                    justCaptured={tile.id === justCapturedId}
+                  />
+                ))}
+              </div>
             </div>
+          </div>
+
+          {/* Leaderboard — hidden on small screens */}
+          <div className="hidden md:flex md:shrink-0">
+            <Leaderboard entries={leaderboard} />
           </div>
         </div>
 
-        <Leaderboard entries={leaderboard} />
+        <CooldownBar
+          remaining={cooldown.remaining}
+          maxSeconds={config.captureCooldownSeconds}
+        />
       </div>
-
-      <CooldownBar
-        remaining={cooldown.remaining}
-        maxSeconds={config.captureCooldownSeconds}
-      />
-    </div>
+    </>
   );
 }
-

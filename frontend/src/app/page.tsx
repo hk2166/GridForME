@@ -56,7 +56,7 @@ export default function LandingPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="relative z-10 flex w-full max-w-md flex-col gap-8 rounded-3xl border border-gridwars-border/70 bg-gridwars-panel/60 p-8 backdrop-blur-xl animate-fade-in"
+        className="relative z-10 flex w-full max-w-md flex-col gap-6 rounded-3xl border border-gridwars-border/70 bg-gridwars-panel/60 p-6 backdrop-blur-xl animate-fade-in sm:gap-8 sm:p-8"
       >
         {/* Title */}
         <div className="text-center">
