@@ -192,7 +192,7 @@ export function GridCanvas() {
       className="flex h-full w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden"
     >
       {error ? (
-        <div className="rounded-lg border border-gridwars-danger/40 bg-gridwars-danger/10 px-4 py-2 text-sm text-gridwars-danger">
+        <div className="fixed bottom-2 left-2 z-90 rounded-lg border border-gridwars-danger/40 bg-gridwars-danger/10 px-4 py-2 text-sm text-gridwars-danger backdrop-blur-xl bg-opacity-50 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-50">
           {error}
         </div>
       ) : null}

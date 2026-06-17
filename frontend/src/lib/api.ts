@@ -46,3 +46,24 @@ export async function captureTile(input: {
 
   return response.json();
 }
+
+
+export type LeaderboardEntry = {
+  userId: string;
+  userName: string;
+  color: string;
+  tileCount: number;
+  rank: number;
+};
+
+export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+  const response = await fetch(`${API_URL}/api/leaderboard`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch leaderboard");
+  }
+
+  return response.json();
+}
