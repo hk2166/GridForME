@@ -271,7 +271,7 @@ export function GridCanvas({ user }: Props) {
           </div>
 
           {/* Right panels — desktop only, fixed width, scroll internally */}
-          <div className="hidden md:flex md:shrink-0 md:flex-col md:gap-3">
+          <div className="hidden md:flex md:min-h-0 md:shrink-0 md:flex-col md:gap-3">
             <Leaderboard entries={leaderboard} />
             <CaptureHistory events={history} />
           </div>

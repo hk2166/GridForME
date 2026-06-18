@@ -14,7 +14,7 @@ export function Leaderboard({ entries }: Props) {
       {entries.length === 0 ? (
         <p className="text-xs text-gridwars-muted/60">No players yet</p>
       ) : (
-        <ul className="flex flex-col gap-1 overflow-y-auto">
+        <ul className="flex min-h-0 flex-col gap-1 overflow-y-auto">
           {entries.map((entry) => (
             <li
               key={entry.userId}
