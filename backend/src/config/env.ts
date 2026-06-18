@@ -2,6 +2,19 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+function stripQuotes(value: string): string {
+  const trimmed = value.trim();
+
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+
+  return trimmed;
+}
+
 function required(name: string): string {
   const value = process.env[name];
 
@@ -9,7 +22,7 @@ function required(name: string): string {
     throw new Error(`Missing required environment variable: ${name}`);
   }
 
-  return value;
+  return stripQuotes(value);
 }
 
 export const env = {
