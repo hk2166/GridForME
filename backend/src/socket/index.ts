@@ -30,7 +30,9 @@ export function initializeSocket(server: http.Server) {
     cors: {
       origin: env.CORS_ORIGIN,
       methods: ["GET", "POST"]
-    }
+    },
+    // polling fallback needed for proxied environments like Render
+    transports: ["websocket", "polling"]
   });
 
   io.on("connection", async (socket) => {
