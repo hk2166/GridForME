@@ -81,7 +81,7 @@ export function RulesModal({ open, onClose }: Props) {
           onClick={onClose}
           className="mt-6 w-full rounded-xl bg-gridwars-accent px-4 py-2.5 font-display font-semibold text-white transition-all hover:bg-gridwars-accent/80"
         >
-          Let's play →
+          Let&apos;s play →
         </button>
       </div>
     </div>

@@ -27,7 +27,7 @@ export function Heatmap({ cols, rows, counts, color }: Props) {
         Your Activity Heatmap
       </h3>
       <p className="mb-3 text-xs text-gridwars-muted">
-        Brighter = more times you've captured that tile
+        Brighter = more times you&apos;ve captured that tile
       </p>
 
       <div
