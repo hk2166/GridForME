@@ -2,17 +2,26 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-function stripQuotes(value: string): string {
-  const trimmed = value.trim();
+function normalizeOrigin(value: string): string {
+  let s = value.trim();
 
+  // Strip surrounding quotes (Render sometimes injects them)
   if (
-    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
   ) {
-    return trimmed.slice(1, -1);
+    s = s.slice(1, -1);
   }
 
-  return trimmed;
+  // Strip trailing slash — browsers send origins without one
+  s = s.replace(/\/+$/, "");
+
+  return s;
+}
+
+// Keep backward-compat alias used by required()
+function stripQuotes(value: string): string {
+  return normalizeOrigin(value);
 }
 
 function required(name: string): string {
@@ -27,7 +36,10 @@ function required(name: string): string {
 
 export const env = {
   PORT: Number(process.env.PORT ?? 4000),
-  CORS_ORIGIN: process.env.CORS_ORIGIN ?? "http://localhost:3000",
+  CORS_ORIGIN: (process.env.CORS_ORIGIN ?? "http://localhost:3000")
+    .split(",")
+    .map((origin) => normalizeOrigin(origin))
+    .filter(Boolean),
   GRID_COLS: Number(process.env.GRID_COLS ?? 40),
   GRID_ROWS: Number(process.env.GRID_ROWS ?? 25),
   CAPTURE_COOLDOWN_SECONDS: Number(process.env.CAPTURE_COOLDOWN_SECONDS ?? 5),
