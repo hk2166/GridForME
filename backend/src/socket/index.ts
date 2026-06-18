@@ -38,9 +38,13 @@ export function initializeSocket(server: http.Server) {
   io.on("connection", async (socket) => {
     console.log(`Socket connected: ${socket.id}`);
 
-    socket.on("user:join", async (payload: JoinPayload) => {
-      await redis.sAdd(ONLINE_USERS_KEY, socket.id);
+    // Add to online set immediately on socket connect — not waiting for user:join.
+    // This ensures the count reflects actual open connections.
+    await redis.sAdd(ONLINE_USERS_KEY, socket.id);
+    const countOnConnect = await redis.sCard(ONLINE_USERS_KEY);
+    io.emit("online:count", { count: countOnConnect });
 
+    socket.on("user:join", async (payload: JoinPayload) => {
       await redis.hSet(`user:session:${socket.id}`, {
         userId: payload.userId,
         name: payload.name,
@@ -48,16 +52,7 @@ export function initializeSocket(server: http.Server) {
       });
 
       const tiles = await getGridTiles();
-
-      socket.emit("grid:init", {
-        tiles
-      });
-
-      const onlineCount = await redis.sCard(ONLINE_USERS_KEY);
-
-      io.emit("online:count", {
-        count: onlineCount
-      });
+      socket.emit("grid:init", { tiles });
     });
 
     socket.on("tile:capture", async (payload: CapturePayload) => {
@@ -130,10 +125,7 @@ export function initializeSocket(server: http.Server) {
       await redis.del(`user:session:${socket.id}`);
 
       const onlineCount = await redis.sCard(ONLINE_USERS_KEY);
-
-      io.emit("online:count", {
-        count: onlineCount
-      });
+      io.emit("online:count", { count: onlineCount });
 
       console.log(`Socket disconnected: ${socket.id}`);
     });
