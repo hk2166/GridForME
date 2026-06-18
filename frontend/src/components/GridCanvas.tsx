@@ -235,7 +235,7 @@ export function GridCanvas({ user }: Props) {
 
         {/* Main area: stats | grid | leaderboard + feed */}
         <div className="flex min-h-0 w-full flex-1 items-stretch gap-2 sm:gap-4">
-          {/* Stats panel — hidden on very small screens */}
+          {/* Stats panel — desktop only (left) */}
           <div className="hidden sm:flex sm:shrink-0">
             <StatsPanel
               tilesOwned={tilesOwned}
@@ -270,11 +270,21 @@ export function GridCanvas({ user }: Props) {
             </div>
           </div>
 
-          {/* Right panels */}
+          {/* Right panels — desktop only, fixed width, scroll internally */}
           <div className="hidden md:flex md:shrink-0 md:flex-col md:gap-3">
             <Leaderboard entries={leaderboard} />
             <CaptureHistory events={history} />
           </div>
+        </div>
+
+        {/* Mobile stats row — shown below grid on small screens */}
+        <div className="shrink-0 sm:hidden">
+          <StatsPanel
+            tilesOwned={tilesOwned}
+            rank={myRank}
+            totalTiles={cols * rows}
+            compact
+          />
         </div>
 
         <CooldownBar
