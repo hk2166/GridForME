@@ -155,7 +155,7 @@ Runs on `http://localhost:3000`.
 
 ```bash
 curl -X POST https://gridforme.onrender.com/api/grid/reset \
-  -H "x-reset-secret: reset_grid"
+  -H "x-reset-secret: your-secret-password"
 ```
 
 ---
