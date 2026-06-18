@@ -12,6 +12,7 @@ import { useSocket } from "@/hooks/useSocket";
 import { useToast } from "@/hooks/useToast";
 import { type UserProfile } from "@/hooks/useUser";
 import { config } from "@/lib/config";
+import { CaptureHistory, type CaptureEvent } from "./CaptureHistory";
 import { CooldownBar } from "./CooldownBar";
 import { GridTile as GridTileView } from "./GridTile";
 import { Leaderboard } from "./Leaderboard";
@@ -40,6 +41,7 @@ export function GridCanvas({ user }: Props) {
   const [tileSize, setTileSize] = useState(20);
   const [justCapturedId, setJustCapturedId] = useState<number | null>(null);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [history, setHistory] = useState<CaptureEvent[]>([]);
 
   const myEntry = leaderboard.find((e) => e.userId === user.id);
   const tilesOwned = myEntry?.tileCount ?? 0;
@@ -88,7 +90,12 @@ export function GridCanvas({ user }: Props) {
       setJustCapturedId(updatedTile.id);
       window.setTimeout(() => setJustCapturedId(null), 400);
 
-      // Toast for someone else's capture
+      // Prepend to live feed, keep last 10.
+      setHistory((prev) => [
+        { tile: updatedTile, at: Date.now() },
+        ...prev.slice(0, 9)
+      ]);
+
       if (updatedTile.ownerId !== user.id) {
         const msg = updatedTile.wasSteal
           ? `${updatedTile.ownerName} stole a tile!`
@@ -226,7 +233,7 @@ export function GridCanvas({ user }: Props) {
           <OnlineCount count={onlineCount} />
         </div>
 
-        {/* Main area: stats | grid | leaderboard */}
+        {/* Main area: stats | grid | leaderboard + feed */}
         <div className="flex min-h-0 w-full flex-1 items-stretch gap-2 sm:gap-4">
           {/* Stats panel — hidden on very small screens */}
           <div className="hidden sm:flex sm:shrink-0">
@@ -263,9 +270,10 @@ export function GridCanvas({ user }: Props) {
             </div>
           </div>
 
-          {/* Leaderboard — hidden on small screens */}
-          <div className="hidden md:flex md:shrink-0">
+          {/* Right panels */}
+          <div className="hidden md:flex md:shrink-0 md:flex-col md:gap-3">
             <Leaderboard entries={leaderboard} />
+            <CaptureHistory events={history} />
           </div>
         </div>
 

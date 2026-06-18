@@ -87,3 +87,16 @@ export async function getStats(): Promise<StatsResponse> {
 
   return response.json();
 }
+
+// Returns { [tileId]: captureCount } for heatmap rendering
+export async function getUserHeatmap(userId: string): Promise<Record<number, number>> {
+  const response = await fetch(`${API_URL}/api/stats/user/${userId}/heatmap`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch heatmap");
+  }
+
+  return response.json();
+}

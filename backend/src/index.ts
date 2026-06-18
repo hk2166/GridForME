@@ -87,6 +87,23 @@ app.get("/api/stats/user/:userId", async (req, res) => {
   res.json({ userId, tilesOwned, totalCaptures, steals });
 });
 
+// Returns per-tile capture counts for the heatmap — { tileId: count }
+app.get("/api/stats/user/:userId/heatmap", async (req, res) => {
+  const { userId } = req.params;
+
+  const captures = await prisma.capture.findMany({
+    where: { userId },
+    select: { tileId: true }
+  });
+
+  const counts: Record<number, number> = {};
+  for (const { tileId } of captures) {
+    counts[tileId] = (counts[tileId] ?? 0) + 1;
+  }
+
+  res.json(counts);
+});
+
 app.post("/api/grid/capture", async (req, res) => {
   const { tileId, userId, userName, color } = req.body;
 
