@@ -2,7 +2,7 @@
 
 Real-time multiplayer territory capture. Open the site, pick a name and color, and claim tiles on a shared grid. Every move is broadcast instantly to all connected players.
 
-**Live demo:** _coming soon_
+**Live demo:** https://grid-for-me.vercel.app
 
 ---
 
